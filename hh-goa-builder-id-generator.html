@@ -91,6 +91,7 @@
   .panel::before {
     content: '';
     position: absolute;
+    pointer-events: none;
     top: -50%;
     right: -50%;
     width: 200%;
@@ -102,13 +103,18 @@
     0%, 100% { transform: translate(0, 0); }
     50% { transform: translate(20px, 20px); }
   }
-  .field{margin-bottom:16px;}
+  .field{margin-bottom:16px; position:relative; z-index:10;}
   .field label{
     display:block; font-size:12px; font-weight:700; text-transform:uppercase;
     letter-spacing:.06em; color:#f6d548; margin-bottom:6px;
   }
   .field input[type=text], .field select{
-    width:100%; 
+    width:100%;
+    position:relative;
+    z-index:11;
+    pointer-events:auto;
+    user-select:text;
+    -webkit-user-select:text; 
     padding:14px 16px; 
     border-radius:14px; 
     border:1.5px solid rgba(244,211,88,.3);
@@ -267,6 +273,13 @@
     box-shadow: 0 30px 70px rgba(18,62,54,.4), 0 0 1px rgba(255,255,255,.1), inset 0 1px 0 rgba(255,255,255,.1);
   }
   canvas{ width:100%; display:block; }
+  .preview-editor{ position:absolute; inset:0; pointer-events:none; z-index:3; }
+  .preview-edit{ position:absolute; box-sizing:border-box; border:1.5px solid transparent; outline:none; background:transparent; color:transparent; caret-color:#6b5344; font-family:"Courier New", Courier, monospace; font-weight:700; font-size:26px; line-height:1.2; text-align:left; padding:2px 4px; border-radius:5px; pointer-events:auto; text-transform:uppercase; }
+  .preview-edit:hover{ border-color:rgba(107,83,68,.35); background:rgba(255,255,255,.08); color:#6b5344; }
+  .preview-edit:focus{ border-color:#6b5344; background:rgba(232,217,184,.92); color:#6b5344; box-shadow:0 0 0 2px rgba(107,83,68,.18); }
+  .name-edit{ left:25.9%; top:59.0%; width:48.2%; height:4.2%; }
+  .date-edit{ left:25.9%; top:63.0%; width:48.2%; height:4.2%; }
+  .location-edit{ left:25.9%; top:67.0%; width:48.2%; height:4.2%; }
   .loading-overlay{
     position:absolute; inset:0; background:rgba(12,44,32,.85); display:none;
     align-items:center; justify-content:center; color:var(--gold); font-weight:700; font-size:13px;
@@ -305,17 +318,17 @@
 
       <div class="field">
         <label>Name</label>
-        <input type="text" id="nameInput" value="PUSHTI KADIA" maxlength="26">
+        <input type="text" id="nameInput" value="PUSHTI KADIA" maxlength="26" autocomplete="off" spellcheck="false">
       </div>
 
       <div class="field">
         <label>Date</label>
-        <input type="text" id="stackInput" value="28-31 OCT 2026" maxlength="32">
+        <input type="text" id="stackInput" value="28-31 OCT 2026" maxlength="32" autocomplete="off" spellcheck="false">
       </div>
 
       <div class="field">
         <label>Location</label>
-        <input type="text" id="titleInput" value="GOA, INDIA" maxlength="32">
+        <input type="text" id="titleInput" value="GOA, INDIA" maxlength="32" autocomplete="off" spellcheck="false">
       </div>
 
       <div class="actions">
@@ -373,9 +386,27 @@ function clearError(){
   errorMsg.textContent = '';
 }
 
-nameInput.addEventListener('input', safeDraw);
-stackInput.addEventListener('input', safeDraw);
-titleInput.addEventListener('input', safeDraw);
+// ---------- editable card fields ----------
+// The fields under "Your photo" are the source of truth for the ID card.
+// Every keystroke is copied into the card values and immediately redraws the preview.
+let cardData = {
+  name: nameInput ? nameInput.value : 'PUSHTI KADIA',
+  date: stackInput ? stackInput.value : '28-31 OCT 2026',
+  location: titleInput ? titleInput.value : 'GOA, INDIA'
+};
+
+function updateCardFromInputs(){
+  cardData.name = nameInput.value;
+  cardData.date = stackInput.value;
+  cardData.location = titleInput.value;
+  safeDraw();
+}
+
+// Keep the three editable fields permanently connected to the ID card preview.
+[nameInput, stackInput, titleInput].forEach((input)=>{
+  input.addEventListener('input', updateCardFromInputs);
+  input.addEventListener('change', updateCardFromInputs);
+});
 
 // ---------- photo upload ----------
 photoInput.addEventListener('change', (e)=>{
@@ -569,9 +600,9 @@ function draw() {
   ctx.textAlign = 'center';
   ctx.fillText('BUILDER ID', cardX + cardW / 2, cardY + 370);
 
-  const nameValue = (nameInput.value || 'PUSHTI KADIA').toUpperCase();
-  const stackValue = (stackInput.value || '28-31 OCT 2026').toUpperCase();
-  const locationValue = (titleInput.value || 'GOA, INDIA').toUpperCase();
+  const nameValue = (cardData.name || 'PUSHTI KADIA').toUpperCase();
+  const stackValue = (cardData.date || '28-31 OCT 2026').toUpperCase();
+  const locationValue = (cardData.location || 'GOA, INDIA').toUpperCase();
 
   ctx.fillStyle = '#6b5344';
   ctx.font = '700 26px "Courier New", Courier, monospace';
@@ -1077,6 +1108,9 @@ function resetCard(){
   nameInput.value = 'PUSHTI KADIA';
   stackInput.value = '28-31 OCT 2026';
   titleInput.value = 'GOA, INDIA';
+  cardData.name = nameInput.value;
+  cardData.date = stackInput.value;
+  cardData.location = titleInput.value;
   clearError();
   safeDraw();
 }
@@ -1108,9 +1142,12 @@ uploadBox.addEventListener('click', () => photoInput.click());
 
 // ---------- boot: wait for fonts, then paint ----------
 function boot(){
-  if (nameInput) nameInput.value = 'PUSHTI KADIA';
-  if (stackInput) stackInput.value = '28-31 OCT 2026';
-  if (titleInput) titleInput.value = 'GOA, INDIA';
+  if (nameInput && !nameInput.value) nameInput.value = 'PUSHTI KADIA';
+  if (stackInput && !stackInput.value) stackInput.value = '28-31 OCT 2026';
+  if (titleInput && !titleInput.value) titleInput.value = 'GOA, INDIA';
+  cardData.name = nameInput.value;
+  cardData.date = stackInput.value;
+  cardData.location = titleInput.value;
   safeDraw();
   loadingOverlay.classList.remove('show');
 }
@@ -1120,7 +1157,7 @@ if(document.fonts && document.fonts.ready){
     document.fonts.load('800 80px "Alfa Slab One"'),
     document.fonts.load('600 18px "Inter"'),
   ]).then(boot).catch(boot);
-  setTimeout(boot, 1500); // fallback in case font loading stalls
+  setTimeout(()=>{ if(loadingOverlay.classList.contains('show')) boot(); }, 1500); // fallback in case font loading stalls
 } else {
   boot();
 }
