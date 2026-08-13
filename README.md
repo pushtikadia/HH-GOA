@@ -19,8 +19,6 @@ Hacker House Goa 2026.**
 
 <br>
 
-`GOA GREEN` · `MANDOVI TEAL` · `SUN GOLD` · `FESTIVAL PINK`
-
 </div>
 
 ---
