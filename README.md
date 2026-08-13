@@ -1,4 +1,4 @@
-# HH Goa 2026 — Builder ID Generator
+<p align="center"> # HH Goa 2026 — Builder ID Generator </p>
 
 <p align="center">
   <strong>BUILD IN THE SUN. SHIP FROM THE COAST.</strong>
